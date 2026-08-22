@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Odd One Out — Precision Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-950:#191033;
+    --ink-900:#211540;
+    --ink-800:#2b1c52;
+    --ink-700:#382868;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.16);
+    --paper:#f4f2ff;
+    --muted:#a89ed6;
+    --muted-2:#7d72ad;
+    --accent:#2fe6d8;
+    --accent-2:#17b8ae;
+    --accent-dim:#1a8f8a;
+    --gold:#ffcf6a;
+    --gold-2:#e0982f;
+    --good:#4fe0a3;
+    --bad:#ff6a72;
+    --r-lg:26px;
+    --r-md:16px;
+    --r-sm:10px;
+    --shadow-deep: 0 20px 50px -20px rgba(6,3,20,.65);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #3a2a72 0%, transparent 60%),
+      radial-gradient(900px 700px at 110% 10%, #24184a 0%, transparent 55%),
+      linear-gradient(180deg, var(--ink-950), var(--ink-900) 55%, #150c2c 100%);
+    color:var(--paper);
+    min-height:100%;
+    overflow-x:hidden;
+  }
+
+  /* blueprint grid texture, the visual thread of the whole app */
+  .blueprint{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 42px 42px;
+    -webkit-mask-image: radial-gradient(1100px 700px at 50% 0%, #000 40%, transparent 90%);
+            mask-image: radial-gradient(1100px 700px at 50% 0%, #000 40%, transparent 90%);
+    opacity:.55;
+  }
+  .blueprint::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image: linear-gradient(var(--line-strong) 1px, transparent 1px), linear-gradient(90deg, var(--line-strong) 1px, transparent 1px);
+    background-size: 210px 210px;
+    opacity:.35;
+  }
+
+  .app{
+    position:relative; z-index:1;
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    display:flex; flex-direction:column;
+  }
+
+  .screen{ display:none; flex:1; flex-direction:column; padding:22px 20px 34px; animation:fadeUp .38s ease both; }
+  .screen.active{ display:flex; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  h1,h2,h3{ font-family:'Sora',sans-serif; margin:0; }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:700;
+  }
+
+  /* ---------- shared round pill ---------- */
+  .icon-btn{
+    width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--line-strong);
+    color:var(--paper); cursor:pointer;
+    flex:0 0 auto;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .icon-btn:active{ transform:scale(.94); }
+  .icon-btn:hover{ background:rgba(255,255,255,.12); }
+  .icon-btn svg{ width:20px; height:20px; }
+
+  /* ================= INTRO SCREEN ================= */
+  #screen-intro .top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:26px; }
+
+  .badge-tile{
+    width:112px; height:112px; margin:6px auto 20px; border-radius:28px;
+    background: radial-gradient(circle at 32% 28%, #4a3a86, #241a49 70%);
+    border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+
+  .title-block{ text-align:center; margin-bottom:22px; }
+  .title-block h1{ font-size:30px; font-weight:800; margin-top:8px; letter-spacing:-.01em; }
+  .title-block .sub{ color:var(--muted); font-size:14.5px; margin-top:6px; line-height:1.5; }
+
+  .stat-row{ display:flex; gap:12px; margin-bottom:16px; }
+  .stat-card{
+    flex:1; background:rgba(255,255,255,.05); border:1px solid var(--line);
+    border-radius:var(--r-md); padding:14px 16px;
+  }
+  .stat-card .lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted-2); font-weight:600; }
+  .stat-card .val{ font-family:'Sora',sans-serif; font-size:22px; font-weight:700; margin-top:4px; }
+
+  .difficulty-strip{
+    display:flex; align-items:center; gap:14px;
+    background:linear-gradient(90deg, rgba(47,230,216,.14), rgba(47,230,216,.03));
+    border:1px solid rgba(47,230,216,.25);
+    border-radius:var(--r-md); padding:14px 16px; margin-bottom:18px;
+  }
+  .difficulty-strip .num{
+    font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:var(--accent);
+    width:34px; text-align:center;
+  }
+  .difficulty-strip .divider{ width:1px; align-self:stretch; background:var(--line-strong); }
+  .difficulty-strip p{ margin:0; font-size:13.5px; color:var(--paper); line-height:1.45; }
+  .difficulty-strip b{ color:var(--accent); }
+
+  .skills-title{ font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted-2); font-weight:700; margin:6px 0 12px; }
+  .skill-row{ display:flex; gap:14px; margin-bottom:16px; }
+  .skill-row .dot{
+    width:40px; height:40px; border-radius:50%; flex:0 0 auto;
+    background:rgba(255,255,255,.06); border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .skill-row .dot svg{ width:18px; height:18px; stroke:var(--accent); }
+  .skill-row h3{ font-size:14.5px; font-weight:700; margin-bottom:3px; }
+  .skill-row p{ margin:0; font-size:12.8px; color:var(--muted); line-height:1.45; }
+
+  .spacer{ flex:1; min-height:14px; }
+
+  .btn-primary{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-2));
+    color:#08211f; font-family:'Sora',sans-serif; font-weight:700; font-size:16.5px;
+    border:none; border-radius:999px; padding:16px 20px; cursor:pointer;
+    box-shadow: 0 14px 30px -10px rgba(47,230,216,.45);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-ghost{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:transparent; color:var(--paper); font-family:'Sora',sans-serif; font-weight:700; font-size:15px;
+    border:1px solid var(--line-strong); border-radius:999px; padding:14px 20px; cursor:pointer;
+    margin-top:12px;
+  }
+
+  /* ================= HUD (game screen top bar) ================= */
+  .hud{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .hud-pill{
+    flex:1; height:44px; border-radius:999px;
+    background:rgba(10,6,26,.55); border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 18px; backdrop-filter: blur(6px);
+  }
+  .hud-time{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16.5px; letter-spacing:.02em; }
+  .hud-time.low{ color:var(--bad); }
+  .hud-round{ font-family:'Sora',sans-serif; font-weight:700; font-size:14.5px; color:var(--muted); }
+  .hud-score{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15.5px; color:var(--accent); }
+
+  .progress-track{ height:4px; border-radius:99px; background:rgba(255,255,255,.08); margin:14px 2px 4px; overflow:hidden; }
+  .progress-fill{ height:100%; background:linear-gradient(90deg, var(--accent), var(--gold)); border-radius:99px; transition:width .4s ease; }
+
+  .prompt{ text-align:center; margin:22px 0 6px; }
+  .prompt .lvl-tag{
+    display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); border:1px solid rgba(47,230,216,.35);
+    padding:4px 10px; border-radius:99px; margin-bottom:10px; background:rgba(47,230,216,.08);
+  }
+  .prompt h2{ font-size:19px; font-weight:700; }
+
+  /* ---------- shape grid ---------- */
+  .grid-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:10px 0; }
+  .shape-grid{
+    display:grid;
+    gap:22px 26px;
+    justify-items:center; align-items:center;
+    width:100%;
+  }
+  .shape-btn{
+    background:none; border:none; padding:14px; cursor:pointer;
+    position:relative; display:flex; align-items:center; justify-content:center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shape{
+    width:56px; height:56px;
+    background:linear-gradient(150deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 20px -8px rgba(23,184,174,.55);
+    transition: transform .12s ease;
+  }
+  .shape-btn:active .shape{ transform:scale(.9); }
+  .shape--triangle{ clip-path: polygon(50% 4%, 4% 96%, 96% 96%); }
+  .shape--diamond{ clip-path: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%); }
+  .shape--hexagon{ clip-path: polygon(25% 6%, 75% 6%, 97% 50%, 75% 94%, 25% 94%, 3% 50%); }
+  .shape--pentagon{ clip-path: polygon(50% 2%, 98% 38%, 80% 96%, 20% 96%, 2% 38%); }
+  .shape--square{ border-radius:12px; }
+  .shape--circle{ border-radius:50%; }
+
+  .shape.pattern-dot{
+    background-image: radial-gradient(rgba(9,26,26,.55) 2px, transparent 2.4px);
+    background-size: 10px 10px;
+    background-position:center;
+  }
+
+  .shape.correct-flash{ box-shadow: 0 0 0 6px rgba(79,224,163,.35), 0 10px 20px -8px rgba(79,224,163,.6); }
+  .shape.wrong-flash{ animation: shake .32s ease; box-shadow:0 0 0 6px rgba(255,106,114,.3); }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+
+  .ring-pulse{
+    position:absolute; inset:-14px; border-radius:50%;
+    border:2px solid var(--good); opacity:0;
+  }
+  .ring-pulse.play{ animation: ringPulse .55s ease-out forwards; }
+  @keyframes ringPulse{
+    0%{ opacity:.9; transform:scale(.4); }
+    100%{ opacity:0; transform:scale(1.9); }
+  }
+
+  /* ---------- pause overlay ---------- */
+  /* ---------- big correct/wrong feedback ---------- */
+  .feedback-pop{
+    position:fixed; inset:0; z-index:18; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0;
+  }
+  .feedback-pop .emoji-disc{
+    width:min(62vw, 280px); height:min(62vw, 280px); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:min(34vw, 150px); line-height:1;
+    filter: drop-shadow(0 18px 34px rgba(0,0,0,.55));
+  }
+  .feedback-pop.good .emoji-disc{ background: radial-gradient(circle, rgba(79,224,163,.28), rgba(79,224,163,0) 72%); }
+  .feedback-pop.bad .emoji-disc{ background: radial-gradient(circle, rgba(255,106,114,.28), rgba(255,106,114,0) 72%); }
+  .feedback-pop.play{ animation: feedbackPop .8s ease forwards; }
+  @keyframes feedbackPop{
+    0%{ opacity:0; transform:scale(.4) rotate(-8deg); }
+    18%{ opacity:1; transform:scale(1.18) rotate(4deg); }
+    32%{ transform:scale(1) rotate(0deg); }
+    78%{ opacity:1; transform:scale(1) rotate(0deg); }
+    100%{ opacity:0; transform:scale(1.06) rotate(0deg); }
+  }
+
+  .overlay{
+    position:fixed; inset:0; z-index:20; display:none;
+    align-items:center; justify-content:center;
+    background:rgba(11,6,26,.72); backdrop-filter: blur(4px);
+  }
+  .overlay.show{ display:flex; }
+  .overlay-card{
+    width:calc(100% - 60px); max-width:340px;
+    background:var(--ink-800); border:1px solid var(--line-strong);
+    border-radius:var(--r-lg); padding:26px 22px; text-align:center;
+    box-shadow: var(--shadow-deep);
+  }
+  .overlay-card h2{ font-size:20px; margin-bottom:8px; }
+  .overlay-card p{ color:var(--muted); font-size:13.5px; line-height:1.5; margin:0 0 20px; }
+
+  /* ================= END SCREEN ================= */
+  #screen-end{ align-items:center; text-align:center; justify-content:center; }
+  .trophy-wrap{ margin:6px 0 18px; }
+  .end-title{ font-size:26px; font-weight:800; margin-bottom:6px; }
+  .end-sub{ color:var(--muted); font-size:14px; margin-bottom:22px; line-height:1.5; }
+  .end-stats{ display:flex; gap:12px; width:100%; margin-bottom:22px; }
+  .end-fail .end-title{ color:var(--bad); }
+
+  @media (max-width:360px){
+    .shape{ width:48px; height:48px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blueprint"></div>
+
+<div class="app">
+
+  <!-- ============ INTRO SCREEN ============ -->
+  <section id="screen-intro" class="screen active">
+    <div class="top-row">
+      <div class="eyebrow">Problem Solving</div>
+      <button class="icon-btn" id="btn-info-intro" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </button>
+    </div>
+
+    <div class="badge-tile">
+      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+        <circle cx="19" cy="19" r="13" fill="#2fe6d8"/>
+        <circle cx="14.5" cy="14.5" r="2.3" fill="#0e2f2c"/>
+        <circle cx="23.5" cy="14.5" r="2.3" fill="#0e2f2c"/>
+        <circle cx="19" cy="19" r="2.3" fill="#0e2f2c"/>
+        <circle cx="14.5" cy="23.5" r="2.3" fill="#0e2f2c"/>
+        <circle cx="23.5" cy="23.5" r="2.3" fill="#0e2f2c"/>
+        <rect x="30" y="10" width="16" height="16" rx="4" fill="#1cb8ae"/>
+        <path d="M28 32 L38 42 M38 32 L28 42" stroke="#2fe6d8" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <div class="title-block">
+      <div class="eyebrow" style="color:var(--muted-2)">Odd One Out</div>
+      <h1>Spot the imprecise shape</h1>
+      <p class="sub">Every figure on the board is drawn from the same blueprint but one. Find the flaw before the clock runs out.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="lbl">Best score</div>
+        <div class="val" id="stat-best">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">Rank</div>
+        <div class="val" id="stat-rank" style="font-size:17px;">Unranked</div>
+      </div>
+    </div>
+
+    <div class="difficulty-strip">
+      <div class="num" id="stat-difficulty">3</div>
+      <div class="divider"></div>
+      <p>Clear <b>5 rounds</b> in <b id="stat-timebudget">45</b> seconds to level up. Each round trims the margin for error.</p>
+    </div>
+
+    <div class="skills-title">Skills trained</div>
+    <div class="skill-row">
+      <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div>
+        <h3>Peripheral vision</h3>
+        <p>Train your eye to catch outliers without staring straight at them.</p>
+      </div>
+    </div>
+    <div class="skill-row">
+      <div class="dot"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+      <div>
+        <h3>Visual processing speed</h3>
+        <p>Compress the time between seeing a difference and acting on it.</p>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn-primary" id="btn-start">
+      Start
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <button class="icon-btn" id="btn-pause" aria-label="Pause">
+        <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </button>
+      <div class="hud-pill">
+        <span class="hud-time" id="hud-time">00:45</span>
+        <span class="hud-round" id="hud-round">1/5</span>
+        <span class="hud-score" id="hud-score">0</span>
+      </div>
+      <button class="icon-btn" id="btn-info-game" aria-label="Help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </button>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+    <div class="prompt">
+      <span class="lvl-tag" id="lvl-tag">Round 1 · Easy</span>
+      <h2 id="lvl-instruction">Tap the shape that breaks the pattern</h2>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="shape-grid" id="shape-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ END SCREEN ============ -->
+  <section id="screen-end" class="screen">
+    <div class="trophy-wrap" id="trophy-wrap"></div>
+    <h1 class="end-title" id="end-title">Board cleared</h1>
+    <p class="end-sub" id="end-sub">All five rounds solved with precision to spare.</p>
+
+    <div class="end-stats">
+      <div class="stat-card">
+        <div class="lbl">Score</div>
+        <div class="val" id="end-score">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">Time left</div>
+        <div class="val" id="end-time">0s</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">Rank</div>
+        <div class="val" id="end-rank" style="font-size:16px;">—</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btn-again" style="width:100%;">Play again</button>
+    <button class="btn-ghost" id="btn-home" style="width:100%;">Back to overview</button>
+  </section>
+
+</div>
+
+<!-- big correct/wrong feedback -->
+<div class="feedback-pop" id="feedback-pop">
+  <div class="emoji-disc" id="feedback-emoji"></div>
+</div>
+
+<!-- ============ PAUSE OVERLAY ============ -->
+<div class="overlay" id="overlay-pause">
+  <div class="overlay-card">
+    <h2>Paused</h2>
+    <p>The clock is frozen. Take a breath, then get back to it.</p>
+    <button class="btn-primary" id="btn-resume" style="width:100%;">Resume</button>
+    <button class="btn-ghost" id="btn-quit" style="width:100%;">Quit round</button>
+  </div>
+</div>
+
+<!-- ============ HELP OVERLAY ============ -->
+<div class="overlay" id="overlay-help">
+  <div class="overlay-card">
+    <h2>How to play</h2>
+    <p>Every shape on the board matches a single blueprint — shape, pattern, tone, angle and size — except one. Tap the shape that doesn't belong before the shared timer runs out. Rounds get quieter about their flaw as you go.</p>
+    <button class="btn-primary" id="btn-help-close" style="width:100%;">Got it</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Level configuration: easy → hard ---------------- */
+  const LEVELS = [
+    { round:1, count:6,  cols:2, mode:'shape',    label:'Easy',          instruction:'Tap the shape that breaks the pattern' },
+    { round:2, count:8,  cols:3, mode:'pattern',  label:'Easy · Medium', instruction:'One shape has a different texture' },
+    { round:3, count:9,  cols:3, mode:'shade',    label:'Medium',        instruction:'One shape is a shade off' },
+    { round:4, count:12, cols:4, mode:'rotation', label:'Medium · Hard', instruction:'One shape sits at the wrong angle' },
+    { round:5, count:16, cols:4, mode:'size',     label:'Hard',          instruction:'One shape is a fraction the wrong size' },
+  ];
+  const BASE_SHAPES = ['triangle','diamond','hexagon','pentagon','square','circle'];
+  const TOTAL_TIME = 45;
+  const BEST_KEY = 'ooo_best_score_v1';
+
+  /* ---------------- state ---------------- */
+  let roundIndex = 0;
+  let score = 0;
+  let timeLeft = TOTAL_TIME;
+  let timerId = null;
+  let paused = false;
+  let boardLocked = false;
+
+  /* ---------------- element refs ---------------- */
+  const screens = {
+    intro: document.getElementById('screen-intro'),
+    game: document.getElementById('screen-game'),
+    end: document.getElementById('screen-end'),
+  };
+  const hudTime = document.getElementById('hud-time');
+  const hudRound = document.getElementById('hud-round');
+  const hudScore = document.getElementById('hud-score');
+  const progressFill = document.getElementById('progress-fill');
+  const lvlTag = document.getElementById('lvl-tag');
+  const lvlInstruction = document.getElementById('lvl-instruction');
+  const shapeGrid = document.getElementById('shape-grid');
+  const overlayPause = document.getElementById('overlay-pause');
+  const overlayHelp = document.getElementById('overlay-help');
+  const feedbackPop = document.getElementById('feedback-pop');
+  const feedbackEmoji = document.getElementById('feedback-emoji');
+
+  function showFeedback(correct){
+    feedbackPop.classList.remove('play', 'good', 'bad');
+    feedbackEmoji.textContent = correct ? '\u{1F44D}' : '\u{1F44E}';
+    void feedbackPop.offsetWidth;
+    feedbackPop.classList.add(correct ? 'good' : 'bad', 'play');
+  }
+
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  /* ---------------- best score / rank ---------------- */
+  function getBest(){ return parseInt(localStorage.getItem(BEST_KEY) || '0', 10); }
+  function setBest(v){ localStorage.setItem(BEST_KEY, String(v)); }
+  function rankFor(s){
+    if (s >= 3500) return 'Expert';
+    if (s >= 2000) return 'Advanced';
+    if (s >= 800) return 'Intermediate';
+    if (s > 0) return 'Beginner';
+    return 'Unranked';
+  }
+
+  function paintIntroStats(){
+    const best = getBest();
+    document.getElementById('stat-best').textContent = best;
+    document.getElementById('stat-rank').textContent = rankFor(best);
+  }
+  paintIntroStats();
+
+  /* ---------------- shape rendering helpers ---------------- */
+  function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr){ return arr[randInt(0, arr.length - 1)]; }
+
+  function buildShapeEl(shapeType, opts){
+    opts = opts || {};
+    const el = document.createElement('div');
+    el.className = 'shape shape--' + shapeType + (opts.dotted ? ' pattern-dot' : '');
+    if (opts.hue !== undefined){
+      el.style.background = opts.dotted
+        ? 'hsl(' + opts.hue + ', 72%, ' + opts.light + '%)'
+        : 'linear-gradient(150deg, hsl(' + opts.hue + ',85%,' + (opts.light+8) + '%), hsl(' + opts.hue + ',75%,' + opts.light + '%))';
+    }
+    if (opts.rotate){ el.style.transform = 'rotate(' + opts.rotate + 'deg)'; }
+    if (opts.scale){ el.style.width = (56 * opts.scale) + 'px'; el.style.height = (56 * opts.scale) + 'px'; }
+    return el;
+  }
+
+  /* ---------------- round generation ---------------- */
+  function generateRound(cfg){
+    const items = [];
+    const baseShape = pick(BASE_SHAPES);
+    const oddIndex = randInt(0, cfg.count - 1);
+    const baseHue = randInt(150, 195); // teal/cyan family
+    const baseLight = 52;
+
+    for (let i = 0; i < cfg.count; i++){
+      const isOdd = (i === oddIndex);
+      let shapeType = baseShape;
+      let opts = { hue: baseHue, light: baseLight, dotted:false, rotate:0, scale:1 };
+
+      if (cfg.mode === 'shape'){
+        if (isOdd){
+          const others = BASE_SHAPES.filter(s => s !== baseShape);
+          shapeType = pick(others);
+        }
+      } else if (cfg.mode === 'pattern'){
+        opts.dotted = isOdd;
+      } else if (cfg.mode === 'shade'){
+        opts.light = isOdd ? baseLight + 16 : baseLight;
+      } else if (cfg.mode === 'rotation'){
+        opts.rotate = isOdd ? 26 : 0;
+      } else if (cfg.mode === 'size'){
+        opts.scale = isOdd ? 0.8 : 1;
+      }
+
+      items.push({ shapeType, opts, isOdd });
+    }
+    return items;
+  }
+
+  function renderRound(){
+    const cfg = LEVELS[roundIndex];
+    shapeGrid.style.gridTemplateColumns = 'repeat(' + cfg.cols + ', 1fr)';
+    shapeGrid.innerHTML = '';
+    lvlTag.textContent = 'Round ' + cfg.round + ' · ' + cfg.label;
+    lvlInstruction.textContent = cfg.instruction;
+    hudRound.textContent = cfg.round + '/5';
+    progressFill.style.width = (roundIndex / LEVELS.length * 100) + '%';
+
+    const items = generateRound(cfg);
+    boardLocked = false;
+
+    items.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'shape-btn';
+      btn.setAttribute('aria-label', 'shape');
+
+      const ring = document.createElement('span');
+      ring.className = 'ring-pulse';
+      btn.appendChild(ring);
+
+      const shapeEl = buildShapeEl(item.shapeType, item.opts);
+      btn.appendChild(shapeEl);
+
+      btn.addEventListener('click', () => handleShapeTap(item, shapeEl, ring, btn));
+      shapeGrid.appendChild(btn);
+    });
+  }
+
+  function handleShapeTap(item, shapeEl, ring, btn){
+    if (boardLocked || paused) return;
+    if (item.isOdd){
+      boardLocked = true;
+      shapeEl.classList.add('correct-flash');
+      ring.classList.add('play');
+      const bonus = 60 + timeLeft * 4 + roundIndex * 30;
+      score += bonus;
+      hudScore.textContent = score;
+      showFeedback(true);
+      setTimeout(advanceRound, 820);
+    } else {
+      shapeEl.classList.add('wrong-flash');
+      showFeedback(false);
+      setTimeout(() => shapeEl.classList.remove('wrong-flash'), 320);
+    }
+  }
+
+  function advanceRound(){
+    roundIndex++;
+    if (roundIndex >= LEVELS.length){
+      finishGame(true);
+    } else {
+      renderRound();
+    }
+  }
+
+  /* ---------------- timer ---------------- */
+  function formatTime(t){
+    const m = Math.floor(t / 60).toString().padStart(2, '0');
+    const s = Math.floor(t % 60).toString().padStart(2, '0');
+    return m + ':' + s;
+  }
+
+  function tick(){
+    if (paused) return;
+    timeLeft--;
+    if (timeLeft <= 0){
+      timeLeft = 0;
+      hudTime.textContent = formatTime(timeLeft);
+      finishGame(false);
+      return;
+    }
+    hudTime.textContent = formatTime(timeLeft);
+    hudTime.classList.toggle('low', timeLeft <= 10);
+  }
+
+  function startTimer(){
+    clearInterval(timerId);
+    timerId = setInterval(tick, 1000);
+  }
+  function stopTimer(){ clearInterval(timerId); }
+
+  /* ---------------- game lifecycle ---------------- */
+  function startGame(){
+    roundIndex = 0;
+    score = 0;
+    timeLeft = TOTAL_TIME;
+    paused = false;
+    hudScore.textContent = '0';
+    hudTime.textContent = formatTime(timeLeft);
+    hudTime.classList.remove('low');
+    showScreen('game');
+    renderRound();
+    startTimer();
+  }
+
+  function finishGame(success){
+    stopTimer();
+    progressFill.style.width = '100%';
+    const best = getBest();
+    if (score > best) setBest(score);
+
+    const trophyWrap = document.getElementById('trophy-wrap');
+    const endTitle = document.getElementById('end-title');
+    const endSub = document.getElementById('end-sub');
+    const endScreen = document.getElementById('screen-end');
+
+    document.getElementById('end-score').textContent = score;
+    document.getElementById('end-time').textContent = formatTime(timeLeft);
+    document.getElementById('end-rank').textContent = rankFor(score);
+
+    if (success){
+      endScreen.classList.remove('end-fail');
+      endTitle.textContent = 'Board cleared';
+      endSub.textContent = 'All five rounds solved with ' + formatTime(timeLeft) + ' to spare.';
+      trophyWrap.innerHTML = trophySVG();
+    } else {
+      endScreen.classList.add('end-fail');
+      endTitle.textContent = "Time's up";
+      endSub.textContent = 'Round ' + (roundIndex + 1) + ' of 5 — the flaw got away this time.';
+      trophyWrap.innerHTML = clockSVG();
+    }
+    showScreen('end');
+  }
+
+  function trophySVG(){
+    return '\
+    <svg width="118" height="118" viewBox="0 0 120 120" fill="none">\
+      <defs>\
+        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">\
+          <stop offset="0" stop-color="#ffe39a"/><stop offset="1" stop-color="#e0982f"/>\
+        </linearGradient>\
+      </defs>\
+      <circle cx="60" cy="60" r="58" fill="#2b1c52" stroke="#3f2f78"/>\
+      <path d="M42 24h36v22a18 18 0 0 1-36 0V24Z" fill="url(#gold)"/>\
+      <path d="M42 30h-9a10 10 0 0 0 9 16" stroke="#e0982f" stroke-width="4" fill="none" stroke-linecap="round"/>\
+      <path d="M78 30h9a10 10 0 0 1-9 16" stroke="#e0982f" stroke-width="4" fill="none" stroke-linecap="round"/>\
+      <rect x="54" y="62" width="12" height="14" fill="#e0982f"/>\
+      <path d="M40 90h40l-4-12H44l-4 12Z" fill="url(#gold)"/>\
+      <circle cx="60" cy="41" r="9" fill="#7c4a2d"/>\
+      <path d="M60 36l2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.7Z" fill="#ffe39a"/>\
+    </svg>';
+  }
+  function clockSVG(){
+    return '\
+    <svg width="118" height="118" viewBox="0 0 120 120" fill="none">\
+      <circle cx="60" cy="60" r="58" fill="#2b1c52" stroke="#3f2f78"/>\
+      <circle cx="60" cy="62" r="34" fill="none" stroke="#ff6a72" stroke-width="5"/>\
+      <path d="M60 62V42M60 62l16 10" stroke="#ff6a72" stroke-width="5" stroke-linecap="round"/>\
+      <path d="M48 22h24" stroke="#ff6a72" stroke-width="5" stroke-linecap="round"/>\
+    </svg>';
+  }
+
+  /* ---------------- pause / help ---------------- */
+  document.getElementById('btn-pause').addEventListener('click', () => {
+    paused = true;
+    overlayPause.classList.add('show');
+  });
+  document.getElementById('btn-resume').addEventListener('click', () => {
+    paused = false;
+    overlayPause.classList.remove('show');
+  });
+  document.getElementById('btn-quit').addEventListener('click', () => {
+    paused = false;
+    overlayPause.classList.remove('show');
+    stopTimer();
+    showScreen('intro');
+    paintIntroStats();
+  });
+
+  function openHelp(){ overlayHelp.classList.add('show'); }
+  document.getElementById('btn-info-intro').addEventListener('click', openHelp);
+  document.getElementById('btn-info-game').addEventListener('click', () => { paused = true; openHelp(); });
+  document.getElementById('btn-help-close').addEventListener('click', () => {
+    overlayHelp.classList.remove('show');
+  });
+
+  /* ---------------- nav ---------------- */
+  document.getElementById('btn-start').addEventListener('click', startGame);
+  document.getElementById('btn-again').addEventListener('click', startGame);
+  document.getElementById('btn-home').addEventListener('click', () => {
+    showScreen('intro');
+    paintIntroStats();
+  });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Treasure Hunt — Majority Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cave-950:#121a30;
+    --cave-900:#1a2340;
+    --cave-800:#212b4c;
+    --cave-700:#2a3660;
+    --card:#212a4c;
+    --card-2:#283463;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.18);
+    --paper:#eef1ff;
+    --muted:#9aa3d1;
+    --muted-2:#717aa6;
+    --teal:#1fd1c4;
+    --blue:#2f7dfa;
+    --red:#ef4463;
+    --gold:#ffcf6a;
+    --gold-2:#e0982f;
+    --good:#4fe0a3;
+    --bad:#ff6a72;
+    --r-lg:26px;
+    --r-md:16px;
+    --shadow-deep: 0 20px 50px -20px rgba(3,5,18,.7);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; font-family:'Inter',sans-serif; color:var(--paper);
+    min-height:100%; overflow-x:hidden;
+    background: linear-gradient(180deg, var(--cave-950) 0%, var(--cave-900) 50%, var(--cave-950) 100%);
+  }
+
+  /* ---- cave backdrop ---- */
+  .cave{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .cave svg{ width:100%; height:100%; }
+  .cave .glow{
+    position:absolute; left:20%; top:70%; width:420px; height:420px;
+    background: radial-gradient(circle, rgba(255,170,90,.16), transparent 65%);
+    transform:translate(-50%,-50%);
+  }
+
+  .app{ position:relative; z-index:1; max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+  .screen{ display:none; flex:1; flex-direction:column; padding:22px 20px 30px; animation:fadeUp .38s ease both; }
+  .screen.active{ display:flex; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  h1,h2,h3{ font-family:'Sora',sans-serif; margin:0; }
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+
+  .icon-btn{
+    width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.06); border:1px solid var(--line-strong); color:var(--paper); cursor:pointer;
+    flex:0 0 auto; transition:background .15s ease, transform .1s ease;
+  }
+  .icon-btn:active{ transform:scale(.94); }
+  .icon-btn:hover{ background:rgba(255,255,255,.12); }
+  .icon-btn svg{ width:20px; height:20px; }
+
+  /* ================= INTRO ================= */
+  #screen-intro .top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:26px; }
+  .badge-tile{
+    width:112px; height:112px; margin:6px auto 20px; border-radius:28px;
+    background: radial-gradient(circle at 32% 28%, #37447a, #1c2440 70%);
+    border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center;
+    box-shadow: var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .title-block{ text-align:center; margin-bottom:22px; }
+  .title-block h1{ font-size:29px; font-weight:800; margin-top:8px; letter-spacing:-.01em; }
+  .title-block .sub{ color:var(--muted); font-size:14.5px; margin-top:6px; line-height:1.5; }
+
+  .stat-row{ display:flex; gap:12px; margin-bottom:16px; }
+  .stat-card{ flex:1; background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:var(--r-md); padding:14px 16px; }
+  .stat-card .lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted-2); font-weight:600; }
+  .stat-card .val{ font-family:'Sora',sans-serif; font-size:22px; font-weight:700; margin-top:4px; }
+
+  .difficulty-strip{
+    display:flex; align-items:center; gap:14px;
+    background:linear-gradient(90deg, rgba(239,68,99,.14), rgba(239,68,99,.03));
+    border:1px solid rgba(239,68,99,.28); border-radius:var(--r-md); padding:14px 16px; margin-bottom:14px;
+  }
+  .difficulty-strip .num{ font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:var(--red); width:34px; text-align:center; }
+  .difficulty-strip .divider{ width:1px; align-self:stretch; background:var(--line-strong); }
+  .difficulty-strip p{ margin:0; font-size:13.5px; line-height:1.45; }
+  .difficulty-strip b{ color:var(--red); }
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:var(--r-md);
+    padding:13px 16px; margin-bottom:18px;
+  }
+  .toggle-row .lbl-group{ display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; }
+  .toggle-row svg{ width:18px; height:18px; stroke:var(--muted); }
+  .switch{ position:relative; width:44px; height:26px; flex:0 0 auto; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .track{
+    position:absolute; inset:0; background:rgba(255,255,255,.18); border-radius:99px; cursor:pointer; transition:background .18s ease;
+  }
+  .switch .track::before{
+    content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .18s ease;
+  }
+  .switch input:checked + .track{ background:var(--teal); }
+  .switch input:checked + .track::before{ transform:translateX(18px); }
+
+  .skills-title{ font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted-2); font-weight:700; margin:6px 0 12px; }
+  .skill-row{ display:flex; gap:14px; margin-bottom:16px; }
+  .skill-row .dot-ic{
+    width:40px; height:40px; border-radius:50%; flex:0 0 auto;
+    background:rgba(255,255,255,.06); border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center;
+  }
+  .skill-row .dot-ic svg{ width:18px; height:18px; stroke:var(--red); }
+  .skill-row h3{ font-size:14.5px; font-weight:700; margin-bottom:3px; }
+  .skill-row p{ margin:0; font-size:12.8px; color:var(--muted); line-height:1.45; }
+
+  .spacer{ flex:1; min-height:14px; }
+
+  .btn-primary{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg, #ff8fa3, var(--red));
+    color:#390a15; font-family:'Sora',sans-serif; font-weight:700; font-size:16.5px;
+    border:none; border-radius:999px; padding:16px 20px; cursor:pointer;
+    box-shadow: 0 14px 30px -10px rgba(239,68,99,.5);
+    transition: transform .12s ease;
+  }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-ghost{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:transparent; color:var(--paper); font-family:'Sora',sans-serif; font-weight:700; font-size:15px;
+    border:1px solid var(--line-strong); border-radius:999px; padding:14px 20px; cursor:pointer; margin-top:12px;
+  }
+
+  /* ================= HUD ================= */
+  .hud{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .hud-pill{
+    flex:1; height:44px; border-radius:999px; background:rgba(6,8,22,.6); border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:space-between; padding:0 18px; backdrop-filter: blur(6px);
+  }
+  .hud-time{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16.5px; }
+  .hud-time.low{ color:var(--bad); }
+  .hud-round{ font-family:'Sora',sans-serif; font-weight:700; font-size:14.5px; color:var(--muted); }
+  .hud-score{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15.5px; color:var(--teal); }
+
+  .progress-track{ height:4px; border-radius:99px; background:rgba(255,255,255,.08); margin:14px 2px 18px; overflow:hidden; }
+  .progress-fill{ height:100%; background:linear-gradient(90deg, var(--teal), var(--gold)); border-radius:99px; transition:width .4s ease; }
+
+  .question{
+    text-align:center; font-size:17.5px; font-weight:700; line-height:1.4; font-family:'Sora',sans-serif;
+    background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:var(--r-md);
+    padding:14px 18px; margin-bottom:8px;
+  }
+
+  /* ---------- gem field ---------- */
+  .gem-field{ flex:1; display:flex; align-items:center; justify-content:center; padding:6px 0; }
+  .gem-grid{ display:flex; gap:14px; justify-content:center; align-items:flex-start; }
+  .gem-col{ display:flex; flex-direction:column; gap:18px; }
+  .gem-col.offset{ margin-top:40px; }
+
+  .gem-tile{ position:relative; width:74px; height:74px; }
+  .gem-tile .hex{
+    position:absolute; inset:0; background:rgba(255,255,255,.045);
+    clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0% 50%);
+  }
+  .gem-tile svg{ position:relative; width:100%; height:100%; }
+
+  /* ---------- answer swatches ---------- */
+  .answers{ display:flex; gap:10px; }
+  .swatch-btn{
+    flex:1; height:58px; border-radius:14px; border:2px solid transparent; cursor:pointer;
+    position:relative; transition: transform .1s ease;
+  }
+  .swatch-btn:active{ transform:scale(.95); }
+  .swatch-btn.equal{
+    flex:0 0 58px; background:rgba(255,255,255,.08); border-color:var(--line-strong);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .swatch-btn.equal svg{ width:22px; height:22px; stroke:var(--paper); }
+  .swatch-btn.correct{ box-shadow: 0 0 0 3px var(--good); }
+  .swatch-btn.wrong{ box-shadow: 0 0 0 3px var(--bad); animation: swatchShake .32s ease; }
+  @keyframes swatchShake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-5px);} 75%{transform:translateX(5px);} }
+  .swatch-btn:disabled{ pointer-events:none; }
+  .swatch-pattern{ position:absolute; inset:0; border-radius:12px; opacity:.65; }
+
+  /* ---------- big correct/wrong feedback ---------- */
+  .feedback-pop{
+    position:fixed; inset:0; z-index:18; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0;
+  }
+  .feedback-pop .emoji-disc{
+    width:min(62vw, 280px); height:min(62vw, 280px); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:min(34vw, 150px); line-height:1;
+    filter: drop-shadow(0 18px 34px rgba(0,0,0,.55));
+  }
+  .feedback-pop.good .emoji-disc{ background: radial-gradient(circle, rgba(79,224,163,.28), rgba(79,224,163,0) 72%); }
+  .feedback-pop.bad .emoji-disc{ background: radial-gradient(circle, rgba(255,106,114,.28), rgba(255,106,114,0) 72%); }
+  .feedback-pop.play{ animation: feedbackPop .8s ease forwards; }
+  @keyframes feedbackPop{
+    0%{ opacity:0; transform:scale(.4) rotate(-8deg); }
+    18%{ opacity:1; transform:scale(1.18) rotate(4deg); }
+    32%{ transform:scale(1) rotate(0deg); }
+    78%{ opacity:1; transform:scale(1) rotate(0deg); }
+    100%{ opacity:0; transform:scale(1.06) rotate(0deg); }
+  }
+
+  /* ---------- overlays ---------- */
+  .overlay{ position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; background:rgba(6,4,18,.75); backdrop-filter: blur(4px); }
+  .overlay.show{ display:flex; }
+  .overlay-card{ width:calc(100% - 60px); max-width:340px; background:var(--cave-800); border:1px solid var(--line-strong); border-radius:var(--r-lg); padding:26px 22px; text-align:center; box-shadow: var(--shadow-deep); }
+  .overlay-card h2{ font-size:20px; margin-bottom:8px; }
+  .overlay-card p{ color:var(--muted); font-size:13.5px; line-height:1.5; margin:0 0 20px; }
+
+  /* ================= END ================= */
+  #screen-end{ align-items:center; text-align:center; justify-content:center; }
+  .trophy-wrap{ margin:6px 0 18px; }
+  .end-title{ font-size:26px; font-weight:800; margin-bottom:6px; }
+  .end-sub{ color:var(--muted); font-size:14px; margin-bottom:22px; line-height:1.5; }
+  .end-stats{ display:flex; gap:12px; width:100%; margin-bottom:22px; }
+  .end-fail .end-title{ color:var(--bad); }
+
+  @media (max-width:380px){
+    .gem-tile{ width:62px; height:62px; }
+    .gem-col.offset{ margin-top:32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cave">
+  <div class="glow"></div>
+  <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">
+    <polygon points="0,800 0,520 90,600 60,800" fill="#232e52" opacity=".8"/>
+    <polygon points="400,800 400,540 300,610 340,800" fill="#1a2340" opacity=".85"/>
+    <polygon points="0,0 140,0 90,140 0,120" fill="#232e52" opacity=".6"/>
+    <polygon points="400,0 260,0 320,150 400,130" fill="#1a2340" opacity=".7"/>
+  </svg>
+</div>
+
+<div class="app">
+
+  <!-- ============ INTRO ============ -->
+  <section id="screen-intro" class="screen active">
+    <div class="top-row">
+      <div class="eyebrow">Attention</div>
+      <button class="icon-btn" id="btn-info-intro" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </button>
+    </div>
+
+    <div class="badge-tile">
+      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+        <rect x="10" y="26" width="32" height="18" rx="3" fill="#ef4463"/>
+        <rect x="10" y="26" width="32" height="6" rx="2" fill="#ff8fa3"/>
+        <circle cx="26" cy="35" r="3.4" fill="#7c1d33"/>
+        <path d="M20 26v-4a6 6 0 0 1 12 0v4" stroke="#e0982f" stroke-width="2.6" fill="none"/>
+        <polygon points="26,6 34,14 26,24 18,14" fill="#ff5f7a"/>
+        <path d="M22 10l1.6 3.2 3.2 1.6-3.2 1.6L22 20l-1.6-3.6L17 15l3.4-1.8Z" fill="#fff" opacity=".85"/>
+      </svg>
+    </div>
+
+    <div class="title-block">
+      <div class="eyebrow" style="color:var(--muted-2)">Treasure Hunt</div>
+      <h1>Count the hoard, trust the tally</h1>
+      <p class="sub">Gems are scattered across the cave in two or three colours. Tap the colour that has the most — or call it even if it's a true tie.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="lbl">Best score</div><div class="val" id="stat-best">0</div></div>
+      <div class="stat-card"><div class="lbl">Rank</div><div class="val" id="stat-rank" style="font-size:17px;">Unranked</div></div>
+    </div>
+
+    <div class="difficulty-strip">
+      <div class="num" id="stat-difficulty">1</div>
+      <div class="divider"></div>
+      <p>Clear <b>5 rounds</b> in <b id="stat-timebudget">50</b> seconds to level up. Colours and gem counts pile up as you go.</p>
+    </div>
+
+    <div class="toggle-row">
+      <div class="lbl-group">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.9-.5-1.4 0-1.1.9-2 2-2h2.4a5 5 0 0 0 5-5C22 6.5 17.5 2 12 2Z"/></svg>
+        <span>Colourblind mode</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggle-colorblind">
+        <span class="track"></span>
+      </label>
+    </div>
+
+    <div class="skills-title">Skills trained</div>
+    <div class="skill-row">
+      <div class="dot-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <div><h3>Attention span</h3><p>Hold focus on a busy scene long enough to tally it correctly.</p></div>
+    </div>
+    <div class="skill-row">
+      <div class="dot-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div><h3>Visual estimation</h3><p>Judge quantity at a glance instead of counting one by one.</p></div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn-primary" id="btn-start">
+      Start
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <button class="icon-btn" id="btn-pause" aria-label="Pause">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </button>
+      <div class="hud-pill">
+        <span class="hud-time" id="hud-time">00:50</span>
+        <span class="hud-round" id="hud-round">1/5</span>
+        <span class="hud-score" id="hud-score">0</span>
+      </div>
+      <button class="icon-btn" id="btn-info-game" aria-label="Help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </button>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+    <p class="question">Tap the button of the colour with the most gems</p>
+
+    <div class="gem-field"><div class="gem-grid" id="gem-grid"></div></div>
+
+    <div class="answers" id="answers"></div>
+  </section>
+
+  <!-- ============ END ============ -->
+  <section id="screen-end" class="screen">
+    <div class="trophy-wrap" id="trophy-wrap"></div>
+    <h1 class="end-title" id="end-title">Hoard cleared</h1>
+    <p class="end-sub" id="end-sub">All five piles tallied correctly.</p>
+
+    <div class="end-stats">
+      <div class="stat-card"><div class="lbl">Score</div><div class="val" id="end-score">0</div></div>
+      <div class="stat-card"><div class="lbl">Time left</div><div class="val" id="end-time">0s</div></div>
+      <div class="stat-card"><div class="lbl">Rank</div><div class="val" id="end-rank" style="font-size:16px;">—</div></div>
+    </div>
+
+    <button class="btn-primary" id="btn-again" style="width:100%;">Play again</button>
+    <button class="btn-ghost" id="btn-home" style="width:100%;">Back to overview</button>
+  </section>
+
+</div>
+
+<!-- big correct/wrong feedback -->
+<div class="feedback-pop" id="feedback-pop">
+  <div class="emoji-disc" id="feedback-emoji"></div>
+</div>
+
+<!-- pause overlay -->
+<div class="overlay" id="overlay-pause">
+  <div class="overlay-card">
+    <h2>Paused</h2>
+    <p>The clock is frozen. Take a breath, then get back to it.</p>
+    <button class="btn-primary" id="btn-resume" style="width:100%;">Resume</button>
+    <button class="btn-ghost" id="btn-quit" style="width:100%;">Quit round</button>
+  </div>
+</div>
+
+<!-- help overlay -->
+<div class="overlay" id="overlay-help">
+  <div class="overlay-card">
+    <h2>How to play</h2>
+    <p>Every gem in the cave belongs to one of two or three colours. Tap the swatch for whichever colour appears most often. If two colours are genuinely tied for the lead, tap the "=" button instead of guessing. Answer before the shared clock runs out.</p>
+    <button class="btn-primary" id="btn-help-close" style="width:100%;">Got it</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- level config: easy → hard across 5 rounds ---------------- */
+  const LEVELS = [
+    { round:1, colors:2, total:8,  tieChance:0   },
+    { round:2, colors:2, total:10, tieChance:0.15 },
+    { round:3, colors:3, total:13, tieChance:0.2 },
+    { round:4, colors:3, total:15, tieChance:0.35 },
+    { round:5, colors:3, total:18, tieChance:0.4 },
+  ];
+  const COLOR_DEFS = [
+    { key:'teal', hex:'#1fd1c4', light:'#7af0e4', pattern:'dots' },
+    { key:'blue', hex:'#2f7dfa', light:'#8fb8ff', pattern:'stripes' },
+    { key:'red',  hex:'#ef4463', light:'#ff9aab', pattern:'solid' },
+  ];
+  const TOTAL_TIME = 50;
+  const BEST_KEY = 'th_best_score_v1';
+  const CB_KEY = 'th_colorblind_v1';
+
+  /* ---------------- state ---------------- */
+  let roundIndex = 0;
+  let score = 0;
+  let timeLeft = TOTAL_TIME;
+  let timerId = null;
+  let paused = false;
+  let locked = false;
+  let currentAnswer = null; // color key or 'equal'
+  let colorblind = false;
+
+  /* ---------------- refs ---------------- */
+  const screens = {
+    intro: document.getElementById('screen-intro'),
+    game: document.getElementById('screen-game'),
+    end: document.getElementById('screen-end'),
+  };
+  const hudTime = document.getElementById('hud-time');
+  const hudRound = document.getElementById('hud-round');
+  const hudScore = document.getElementById('hud-score');
+  const progressFill = document.getElementById('progress-fill');
+  const gemGrid = document.getElementById('gem-grid');
+  const answersBar = document.getElementById('answers');
+  const overlayPause = document.getElementById('overlay-pause');
+  const overlayHelp = document.getElementById('overlay-help');
+  const cbToggle = document.getElementById('toggle-colorblind');
+  const feedbackPop = document.getElementById('feedback-pop');
+  const feedbackEmoji = document.getElementById('feedback-emoji');
+
+  function showFeedback(correct){
+    feedbackPop.classList.remove('play', 'good', 'bad');
+    feedbackEmoji.textContent = correct ? '\u{1F44D}' : '\u{1F44E}';
+    // ફોર્સ reflow જેથી consecutive રાઉન્ડમાં એનિમેશન દર વખતે ફરી ટ્રિગર થાય
+    void feedbackPop.offsetWidth;
+    feedbackPop.classList.add(correct ? 'good' : 'bad', 'play');
+  }
+
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  /* ---------------- persisted prefs ---------------- */
+  colorblind = localStorage.getItem(CB_KEY) === '1';
+  cbToggle.checked = colorblind;
+  cbToggle.addEventListener('change', () => {
+    colorblind = cbToggle.checked;
+    localStorage.setItem(CB_KEY, colorblind ? '1' : '0');
+  });
+
+  /* ---------------- best score / rank ---------------- */
+  function getBest(){ return parseInt(localStorage.getItem(BEST_KEY) || '0', 10); }
+  function setBest(v){ localStorage.setItem(BEST_KEY, String(v)); }
+  function rankFor(s){
+    if (s >= 2600) return 'Expert';
+    if (s >= 1500) return 'Advanced';
+    if (s >= 600) return 'Amateur';
+    if (s > 0) return 'Novice';
+    return 'Unranked';
+  }
+  function paintIntroStats(){
+    const best = getBest();
+    document.getElementById('stat-best').textContent = best;
+    document.getElementById('stat-rank').textContent = rankFor(best);
+  }
+  paintIntroStats();
+
+  /* ---------------- helpers ---------------- */
+  function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pickFrom(arr){ return arr[randInt(0, arr.length - 1)]; }
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = randInt(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  /* ---------------- round generation ---------------- */
+  function generateCounts(colorCount, total, forceTie){
+    if (forceTie && colorCount >= 2){
+      const shared = Math.max(2, Math.floor(total / (colorCount + 1)));
+      const counts = new Array(colorCount).fill(1);
+      const idx = shuffle([...Array(colorCount).keys()]).slice(0, 2);
+      counts[idx[0]] = shared; counts[idx[1]] = shared;
+      let remaining = total - counts.reduce((a,b) => a+b, 0);
+      let guard = 0;
+      while (remaining > 0 && guard < 200){
+        guard++;
+        const others = counts.map((c,i) => i).filter(i => !idx.includes(i) && counts[i] < shared - 1);
+        if (others.length === 0){
+          counts[idx[0]]++; counts[idx[1]]++; remaining -= 2; continue;
+        }
+        counts[pickFrom(others)]++; remaining--;
+      }
+      return counts;
+    }
+    const counts = new Array(colorCount).fill(1);
+    let remaining = total - colorCount;
+    while (remaining-- > 0){ counts[randInt(0, colorCount - 1)]++; }
+    return counts;
+  }
+
+  function determineAnswer(counts, keys){
+    const max = Math.max(...counts);
+    const topIdxs = counts.map((c,i) => i).filter(i => counts[i] === max);
+    return topIdxs.length > 1 ? 'equal' : keys[topIdxs[0]];
+  }
+
+  function generateRound(cfg){
+    const defs = COLOR_DEFS.slice(0, cfg.colors);
+    const keys = defs.map(d => d.key);
+    const forceTie = Math.random() < cfg.tieChance;
+    const counts = generateCounts(cfg.colors, cfg.total, forceTie);
+    const answer = determineAnswer(counts, keys);
+
+    const gems = [];
+    counts.forEach((c, i) => { for (let g = 0; g < c; g++) gems.push(defs[i]); });
+    return { gems: shuffle(gems), defs, answer };
+  }
+
+  /* ---------------- gem rendering ---------------- */
+  let gemUid = 0;
+  function gemSVG(def){
+    gemUid++;
+    const gid = 'g' + gemUid;
+    return '\
+    <svg viewBox="0 0 64 64">\
+      <defs>\
+        <linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">\
+          <stop offset="0" stop-color="' + def.light + '"/><stop offset="1" stop-color="' + def.hex + '"/>\
+        </linearGradient>\
+      </defs>\
+      <polygon points="32,6 56,24 32,58 8,24" fill="url(#' + gid + ')"/>\
+      <polygon points="32,6 56,24 32,32 8,24" fill="rgba(255,255,255,.28)"/>\
+      <polygon points="8,24 32,32 32,58" fill="rgba(0,0,0,.16)"/>\
+      <polygon points="56,24 32,32 32,58" fill="rgba(255,255,255,.1)"/>\
+      <path d="M20 14l2.6 5.2L28 22l-5.4 2.8L20 30l-2.6-5.2L12 22l5.4-2.8Z" fill="#fff" opacity=".9"/>\
+      <path d="M42 30l1.8 3.6L47.4 36l-3.6 1.8L42 41.4l-1.8-3.6L36.6 36l3.6-1.8Z" fill="#fff" opacity=".8"/>\
+    </svg>';
+  }
+
+  function renderGemField(gems){
+    gemGrid.innerHTML = '';
+    const cols = [document.createElement('div'), document.createElement('div'), document.createElement('div')];
+    cols.forEach((c, i) => { c.className = 'gem-col' + (i === 1 ? ' offset' : ''); });
+    gems.forEach((def, i) => {
+      const tile = document.createElement('div');
+      tile.className = 'gem-tile';
+      const hex = document.createElement('div');
+      hex.className = 'hex';
+      tile.appendChild(hex);
+      tile.insertAdjacentHTML('beforeend', gemSVG(def));
+      cols[i % 3].appendChild(tile);
+    });
+    cols.forEach(c => gemGrid.appendChild(c));
+  }
+
+  function patternStyle(def){
+    if (!colorblind) return 'background:' + def.hex + ';';
+    if (def.pattern === 'dots'){
+      return 'background:' + def.hex + '; background-image:radial-gradient(rgba(255,255,255,.7) 2px, transparent 2.4px); background-size:9px 9px;';
+    }
+    if (def.pattern === 'stripes'){
+      return 'background:' + def.hex + '; background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.55) 0 3px, transparent 3px 8px);';
+    }
+    return 'background:' + def.hex + ';';
+  }
+
+  function renderAnswers(defs){
+    answersBar.innerHTML = '';
+    defs.forEach(def => {
+      const btn = document.createElement('button');
+      btn.className = 'swatch-btn';
+      btn.dataset.key = def.key;
+      btn.innerHTML = '<span class="swatch-pattern" style="' + patternStyle(def) + '"></span>';
+      btn.addEventListener('click', () => handleAnswer(def.key, btn));
+      answersBar.appendChild(btn);
+    });
+    const eqBtn = document.createElement('button');
+    eqBtn.className = 'swatch-btn equal';
+    eqBtn.dataset.key = 'equal';
+    eqBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round"><path d="M5 9h14M5 15h14"/></svg>';
+    eqBtn.addEventListener('click', () => handleAnswer('equal', eqBtn));
+    answersBar.appendChild(eqBtn);
+  }
+
+  function renderRound(){
+    const cfg = LEVELS[roundIndex];
+    hudRound.textContent = cfg.round + '/5';
+    progressFill.style.width = (roundIndex / LEVELS.length * 100) + '%';
+
+    const data = generateRound(cfg);
+    currentAnswer = data.answer;
+    renderGemField(data.gems);
+    renderAnswers(data.defs);
+    locked = false;
+  }
+
+  function handleAnswer(key, btn){
+    if (locked || paused) return;
+    locked = true;
+    Array.from(answersBar.children).forEach(b => b.disabled = true);
+
+    const correct = (key === currentAnswer);
+    if (correct){
+      btn.classList.add('correct');
+      const bonus = 45 + roundIndex * 20 + timeLeft * 3;
+      score += bonus;
+      hudScore.textContent = score;
+    } else {
+      btn.classList.add('wrong');
+      const correctBtn = Array.from(answersBar.children).find(b => b.dataset.key === currentAnswer);
+      if (correctBtn) correctBtn.classList.add('correct');
+    }
+    showFeedback(correct);
+    setTimeout(advanceRound, 820);
+  }
+
+  function advanceRound(){
+    roundIndex++;
+    if (roundIndex >= LEVELS.length){
+      finishGame(true);
+    } else {
+      renderRound();
+    }
+  }
+
+  /* ---------------- timer ---------------- */
+  function formatTime(t){
+    const m = Math.floor(t / 60).toString().padStart(2, '0');
+    const s = Math.floor(t % 60).toString().padStart(2, '0');
+    return m + ':' + s;
+  }
+  function tick(){
+    if (paused) return;
+    timeLeft--;
+    if (timeLeft <= 0){
+      timeLeft = 0;
+      hudTime.textContent = formatTime(timeLeft);
+      finishGame(false);
+      return;
+    }
+    hudTime.textContent = formatTime(timeLeft);
+    hudTime.classList.toggle('low', timeLeft <= 10);
+  }
+  function startTimer(){ clearInterval(timerId); timerId = setInterval(tick, 1000); }
+  function stopTimer(){ clearInterval(timerId); }
+
+  /* ---------------- lifecycle ---------------- */
+  function startGame(){
+    roundIndex = 0; score = 0; timeLeft = TOTAL_TIME; paused = false;
+    hudScore.textContent = '0';
+    hudTime.textContent = formatTime(timeLeft);
+    hudTime.classList.remove('low');
+    showScreen('game');
+    renderRound();
+    startTimer();
+  }
+
+  function finishGame(success){
+    stopTimer();
+    progressFill.style.width = '100%';
+    const best = getBest();
+    if (score > best) setBest(score);
+
+    const trophyWrap = document.getElementById('trophy-wrap');
+    const endTitle = document.getElementById('end-title');
+    const endSub = document.getElementById('end-sub');
+    const endScreen = document.getElementById('screen-end');
+
+    document.getElementById('end-score').textContent = score;
+    document.getElementById('end-time').textContent = formatTime(timeLeft);
+    document.getElementById('end-rank').textContent = rankFor(score);
+
+    if (success){
+      endScreen.classList.remove('end-fail');
+      endTitle.textContent = 'Hoard cleared';
+      endSub.textContent = 'All five piles tallied correctly, with ' + formatTime(timeLeft) + ' to spare.';
+      trophyWrap.innerHTML = trophySVG();
+    } else {
+      endScreen.classList.add('end-fail');
+      endTitle.textContent = "Time's up";
+      endSub.textContent = 'Round ' + (roundIndex + 1) + ' of 5 — the last pile got away.';
+      trophyWrap.innerHTML = clockSVG();
+    }
+    showScreen('end');
+  }
+
+  function trophySVG(){
+    return '\
+    <svg width="118" height="118" viewBox="0 0 120 120" fill="none">\
+      <defs><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe39a"/><stop offset="1" stop-color="#e0982f"/></linearGradient></defs>\
+      <circle cx="60" cy="60" r="58" fill="#212a4c" stroke="#2a3660"/>\
+      <path d="M42 24h36v22a18 18 0 0 1-36 0V24Z" fill="url(#gold)"/>\
+      <path d="M42 30h-9a10 10 0 0 0 9 16" stroke="#e0982f" stroke-width="4" fill="none" stroke-linecap="round"/>\
+      <path d="M78 30h9a10 10 0 0 1-9 16" stroke="#e0982f" stroke-width="4" fill="none" stroke-linecap="round"/>\
+      <rect x="54" y="62" width="12" height="14" fill="#e0982f"/>\
+      <path d="M40 90h40l-4-12H44l-4 12Z" fill="url(#gold)"/>\
+      <circle cx="60" cy="41" r="9" fill="#7c4a2d"/>\
+      <path d="M60 36l2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.7Z" fill="#ffe39a"/>\
+    </svg>';
+  }
+  function clockSVG(){
+    return '\
+    <svg width="118" height="118" viewBox="0 0 120 120" fill="none">\
+      <circle cx="60" cy="60" r="58" fill="#212a4c" stroke="#2a3660"/>\
+      <circle cx="60" cy="62" r="34" fill="none" stroke="#ff6a72" stroke-width="5"/>\
+      <path d="M60 62V42M60 62l16 10" stroke="#ff6a72" stroke-width="5" stroke-linecap="round"/>\
+      <path d="M48 22h24" stroke="#ff6a72" stroke-width="5" stroke-linecap="round"/>\
+    </svg>';
+  }
+
+  /* ---------------- pause / help ---------------- */
+  document.getElementById('btn-pause').addEventListener('click', () => { paused = true; overlayPause.classList.add('show'); });
+  document.getElementById('btn-resume').addEventListener('click', () => { paused = false; overlayPause.classList.remove('show'); });
+  document.getElementById('btn-quit').addEventListener('click', () => {
+    paused = false; overlayPause.classList.remove('show');
+    stopTimer(); showScreen('intro'); paintIntroStats();
+  });
+  function openHelp(){ overlayHelp.classList.add('show'); }
+  document.getElementById('btn-info-intro').addEventListener('click', openHelp);
+  document.getElementById('btn-info-game').addEventListener('click', () => { paused = true; openHelp(); });
+  document.getElementById('btn-help-close').addEventListener('click', () => { overlayHelp.classList.remove('show'); });
+
+  /* ---------------- nav ---------------- */
+  document.getElementById('btn-start').addEventListener('click', startGame);
+  document.getElementById('btn-again').addEventListener('click', startGame);
+  document.getElementById('btn-home').addEventListener('click', () => { showScreen('intro'); paintIntroStats(); });
+
+})();
+</script>
+</body>
+</html>

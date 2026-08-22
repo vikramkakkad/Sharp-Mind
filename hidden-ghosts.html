@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Hidden Ghosts — Memory Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night-950:#082026;
+    --night-900:#0c2e35;
+    --night-800:#123a41;
+    --night-700:#194b53;
+    --tile:#123a41;
+    --tile-2:#163f47;
+    --line:rgba(255,255,255,.08);
+    --line-strong:rgba(255,255,255,.18);
+    --paper:#eafbf7;
+    --muted:#8fb9bc;
+    --muted-2:#5f8a8d;
+    --flash:#3ecfe0;
+    --flash-2:#8fe9f0;
+    --good:#4fe0a3;
+    --bad:#ff6a72;
+    --miss:#6b7699;
+    --gold:#ffcf6a;
+    --gold-2:#e0982f;
+    --r-lg:26px;
+    --r-md:16px;
+    --shadow-deep: 0 20px 50px -20px rgba(2,10,12,.75);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; font-family:'Inter',sans-serif; color:var(--paper);
+    min-height:100%; overflow-x:hidden;
+    background: linear-gradient(180deg, var(--night-950) 0%, var(--night-900) 55%, var(--night-950) 100%);
+  }
+
+  /* ---- halloween backdrop ---- */
+  .haunt{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .haunt svg{ width:100%; height:100%; }
+  .haunt .glow{
+    position:absolute; right:8%; top:6%; width:260px; height:260px; border-radius:50%;
+    background: radial-gradient(circle, rgba(180,240,255,.16), transparent 70%);
+  }
+
+  .app{ position:relative; z-index:1; max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+  .screen{ display:none; flex:1; flex-direction:column; padding:22px 20px 30px; animation:fadeUp .38s ease both; }
+  .screen.active{ display:flex; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  h1,h2,h3{ font-family:'Sora',sans-serif; margin:0; }
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--flash); font-weight:700; }
+
+  .icon-btn{
+    width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.06); border:1px solid var(--line-strong); color:var(--paper); cursor:pointer;
+    flex:0 0 auto; transition:background .15s ease, transform .1s ease;
+  }
+  .icon-btn:active{ transform:scale(.94); }
+  .icon-btn:hover{ background:rgba(255,255,255,.12); }
+  .icon-btn svg{ width:20px; height:20px; }
+
+  /* ================= INTRO ================= */
+  #screen-intro .top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:26px; }
+  .badge-tile{
+    width:112px; height:112px; margin:6px auto 20px; border-radius:28px;
+    background: radial-gradient(circle at 32% 28%, #1c4e56, #0e2e34 70%);
+    border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center;
+    box-shadow: var(--shadow-deep), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .title-block{ text-align:center; margin-bottom:22px; }
+  .title-block h1{ font-size:29px; font-weight:800; margin-top:8px; letter-spacing:-.01em; }
+  .title-block .sub{ color:var(--muted); font-size:14.5px; margin-top:6px; line-height:1.5; }
+
+  .stat-row{ display:flex; gap:12px; margin-bottom:16px; }
+  .stat-card{ flex:1; background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:var(--r-md); padding:14px 16px; }
+  .stat-card .lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted-2); font-weight:600; }
+  .stat-card .val{ font-family:'Sora',sans-serif; font-size:22px; font-weight:700; margin-top:4px; }
+
+  .difficulty-strip{
+    display:flex; align-items:center; gap:14px;
+    background:linear-gradient(90deg, rgba(62,207,224,.14), rgba(62,207,224,.03));
+    border:1px solid rgba(62,207,224,.28); border-radius:var(--r-md); padding:14px 16px; margin-bottom:18px;
+  }
+  .difficulty-strip .num{ font-family:'Sora',sans-serif; font-weight:800; font-size:26px; color:var(--flash); width:34px; text-align:center; }
+  .difficulty-strip .divider{ width:1px; align-self:stretch; background:var(--line-strong); }
+  .difficulty-strip p{ margin:0; font-size:13.5px; line-height:1.45; }
+  .difficulty-strip b{ color:var(--flash); }
+
+  .skills-title{ font-size:11.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted-2); font-weight:700; margin:6px 0 12px; }
+  .skill-row{ display:flex; gap:14px; margin-bottom:16px; }
+  .skill-row .dot-ic{
+    width:40px; height:40px; border-radius:50%; flex:0 0 auto;
+    background:rgba(255,255,255,.06); border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center;
+  }
+  .skill-row .dot-ic svg{ width:18px; height:18px; stroke:var(--flash); }
+  .skill-row h3{ font-size:14.5px; font-weight:700; margin-bottom:3px; }
+  .skill-row p{ margin:0; font-size:12.8px; color:var(--muted); line-height:1.45; }
+
+  .spacer{ flex:1; min-height:14px; }
+
+  .btn-primary{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(180deg, var(--flash-2), var(--flash));
+    color:#062126; font-family:'Sora',sans-serif; font-weight:700; font-size:16.5px;
+    border:none; border-radius:999px; padding:16px 20px; cursor:pointer;
+    box-shadow: 0 14px 30px -10px rgba(62,207,224,.5);
+    transition: transform .12s ease;
+  }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-ghost{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:transparent; color:var(--paper); font-family:'Sora',sans-serif; font-weight:700; font-size:15px;
+    border:1px solid var(--line-strong); border-radius:999px; padding:14px 20px; cursor:pointer; margin-top:12px;
+  }
+
+  /* ================= HUD ================= */
+  .hud{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .hud-pill{
+    flex:1; height:44px; border-radius:999px; background:rgba(4,14,16,.6); border:1px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:space-between; padding:0 20px; backdrop-filter: blur(6px);
+  }
+  .hud-round{ font-family:'Sora',sans-serif; font-weight:700; font-size:14.5px; color:var(--muted); }
+  .hud-score{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15.5px; color:var(--flash); }
+
+  .progress-track{ height:4px; border-radius:99px; background:rgba(255,255,255,.08); margin:14px 2px 16px; overflow:hidden; }
+  .progress-fill{ height:100%; background:linear-gradient(90deg, var(--flash), var(--gold)); border-radius:99px; transition:width .4s ease; }
+
+  .tries-banner{
+    text-align:center; font-family:'Sora',sans-serif; font-weight:700; font-size:14.5px;
+    background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:var(--r-md);
+    padding:11px 16px; margin-bottom:16px; transition: color .2s ease;
+  }
+  .tries-banner.low{ color:var(--bad); border-color:rgba(255,106,114,.4); }
+
+  /* ---------- ghost grid ---------- */
+  .ghost-field{ flex:1; display:flex; align-items:center; justify-content:center; }
+  .ghost-grid{
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:9px; width:100%; max-width:420px;
+  }
+  .g-tile{
+    aspect-ratio:1/1.15; border-radius:12px; background:var(--tile);
+    border:1px solid var(--line); position:relative; cursor:pointer; overflow:hidden;
+    transition: background .18s ease, transform .1s ease;
+  }
+  .g-tile:nth-child(odd){ background:var(--tile-2); }
+  .g-tile:active{ transform:scale(.95); }
+  .g-tile.disabled{ pointer-events:none; }
+  .g-tile.flash{ background:linear-gradient(160deg, var(--flash-2), var(--flash)); }
+  .g-tile.found{ background:linear-gradient(160deg, #8ff0c4, var(--good)); }
+  .g-tile.wrong{ background:linear-gradient(160deg, #ff9aa1, var(--bad)); animation: tileShake .3s ease; }
+  .g-tile.missed{ background:var(--miss); opacity:.7; }
+  @keyframes tileShake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
+  .g-tile svg{ position:absolute; inset:8%; width:84%; height:84%; }
+
+  /* ---------- round success badge ---------- */
+  .success-badge{
+    position:fixed; inset:0; z-index:19; display:flex; align-items:center; justify-content:center;
+    pointer-events:none; opacity:0;
+  }
+  .success-badge .disc{
+    width:min(40vw, 160px); height:min(40vw, 160px); border-radius:50%;
+    background: radial-gradient(circle, rgba(79,224,163,.9), #21a870 70%);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 20px 40px -12px rgba(79,224,163,.6);
+  }
+  .success-badge .disc svg{ width:52%; height:52%; }
+  .success-badge.play{ animation: badgePop .75s ease forwards; }
+  @keyframes badgePop{
+    0%{ opacity:0; transform:scale(.3); }
+    25%{ opacity:1; transform:scale(1.15); }
+    40%{ transform:scale(1); }
+    80%{ opacity:1; }
+    100%{ opacity:0; transform:scale(1.05); }
+  }
+
+  /* ---------- overlays ---------- */
+  .overlay{ position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; background:rgba(2,10,12,.78); backdrop-filter: blur(4px); }
+  .overlay.show{ display:flex; }
+  .overlay-card{ width:calc(100% - 60px); max-width:340px; background:var(--night-800); border:1px solid var(--line-strong); border-radius:var(--r-lg); padding:26px 22px; text-align:center; box-shadow: var(--shadow-deep); }
+  .overlay-card h2{ font-size:20px; margin-bottom:8px; }
+  .overlay-card p{ color:var(--muted); font-size:13.5px; line-height:1.5; margin:0 0 20px; }
+
+  /* ================= END ================= */
+  #screen-end{ align-items:center; text-align:center; justify-content:center; }
+  .trophy-wrap{ margin:6px 0 18px; }
+  .end-title{ font-size:26px; font-weight:800; margin-bottom:6px; }
+  .end-sub{ color:var(--muted); font-size:14px; margin-bottom:22px; line-height:1.5; }
+  .end-stats{ display:flex; gap:12px; width:100%; margin-bottom:22px; }
+</style>
+</head>
+<body>
+
+<div class="haunt">
+  <div class="glow"></div>
+  <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">
+    <circle cx="330" cy="90" r="46" fill="#123a41"/>
+    <path d="M40 780c30-60 70-90 130-90s110 40 140 90" stroke="#194b53" stroke-width="10" fill="none" opacity=".6"/>
+    <polygon points="40,600 40,780 120,780 120,660 80,600" fill="#123a41" opacity=".8"/>
+    <rect x="52" y="680" width="16" height="30" fill="#0c2e35"/>
+    <rect x="90" y="700" width="14" height="26" fill="#0c2e35"/>
+    <path d="M300 760l-14-40-14 40" stroke="#194b53" stroke-width="6" fill="none" opacity=".5"/>
+    <path d="M20 300q40-30 70 0" stroke="#194b53" stroke-width="4" fill="none" opacity=".5"/>
+    <path d="M300 260q40-30 70 0" stroke="#194b53" stroke-width="4" fill="none" opacity=".5"/>
+  </svg>
+</div>
+
+<div class="app">
+
+  <!-- ============ INTRO ============ -->
+  <section id="screen-intro" class="screen active">
+    <div class="top-row">
+      <div class="eyebrow">Memory</div>
+      <button class="icon-btn" id="btn-info-intro" aria-label="How to play">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </button>
+    </div>
+
+    <div class="badge-tile">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <path d="M28 8c-11 0-18 8-18 19v17l6-6 5 6 5-6 5 6 5-6 5 6V27C46 16 39 8 28 8Z" fill="#eafbf7"/>
+        <circle cx="21" cy="26" r="3" fill="#123a41"/>
+        <circle cx="35" cy="26" r="3" fill="#123a41"/>
+        <path d="M23 34q5 4 10 0" stroke="#123a41" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <div class="title-block">
+      <div class="eyebrow" style="color:var(--muted-2)">Hidden Ghosts</div>
+      <h1>Remember where they hide</h1>
+      <p class="sub">The ghosts flash once, then vanish into the dark. Tap every tile you remember before you run out of tries.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="lbl">Best score</div><div class="val" id="stat-best">0</div></div>
+      <div class="stat-card"><div class="lbl">Rank</div><div class="val" id="stat-rank" style="font-size:17px;">Unranked</div></div>
+    </div>
+
+    <div class="difficulty-strip">
+      <div class="num" id="stat-difficulty">4</div>
+      <div class="divider"></div>
+      <p>Complete <b>7 rounds</b> with <b>no mistakes</b> to level up. Every round hides a few more ghosts, for a shorter look.</p>
+    </div>
+
+    <div class="skills-title">Skills trained</div>
+    <div class="skill-row">
+      <div class="dot-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></div>
+      <div><h3>Visual memory</h3><p>Hold a spatial layout in mind after it disappears.</p></div>
+    </div>
+    <div class="skill-row">
+      <div class="dot-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z"/><path d="M12 8v4l3 2"/></svg></div>
+      <div><h3>Focus under pressure</h3><p>Stay accurate while your budget of tries runs thin.</p></div>
+    </div>
+
+    <div class="spacer"></div>
+    <button class="btn-primary" id="btn-start">
+      Start
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <button class="icon-btn" id="btn-pause" aria-label="Pause">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+      </button>
+      <div class="hud-pill">
+        <span class="hud-round" id="hud-round">1/7</span>
+        <span class="hud-score" id="hud-score">0</span>
+      </div>
+      <button class="icon-btn" id="btn-info-game" aria-label="Help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+      </button>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+    <div class="tries-banner" id="tries-banner">4 tries left</div>
+
+    <div class="ghost-field"><div class="ghost-grid" id="ghost-grid"></div></div>
+  </section>
+
+  <!-- ============ END ============ -->
+  <section id="screen-end" class="screen">
+    <div class="trophy-wrap" id="trophy-wrap"></div>
+    <h1 class="end-title" id="end-title">All ghosts found</h1>
+    <p class="end-sub" id="end-sub">Seven rounds of hide-and-seek, cleared.</p>
+
+    <div class="end-stats">
+      <div class="stat-card"><div class="lbl">Score</div><div class="val" id="end-score">0</div></div>
+      <div class="stat-card"><div class="lbl">Accuracy</div><div class="val" id="end-accuracy">0%</div></div>
+      <div class="stat-card"><div class="lbl">Rank</div><div class="val" id="end-rank" style="font-size:16px;">—</div></div>
+    </div>
+
+    <button class="btn-primary" id="btn-again" style="width:100%;">Play again</button>
+    <button class="btn-ghost" id="btn-home" style="width:100%;">Back to overview</button>
+  </section>
+
+</div>
+
+<!-- round success badge -->
+<div class="success-badge" id="success-badge">
+  <div class="disc">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#052018" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+  </div>
+</div>
+
+<!-- pause overlay -->
+<div class="overlay" id="overlay-pause">
+  <div class="overlay-card">
+    <h2>Paused</h2>
+    <p>Take a breath, then get back to the hunt.</p>
+    <button class="btn-primary" id="btn-resume" style="width:100%;">Resume</button>
+    <button class="btn-ghost" id="btn-quit" style="width:100%;">Quit round</button>
+  </div>
+</div>
+
+<!-- help overlay -->
+<div class="overlay" id="overlay-help">
+  <div class="overlay-card">
+    <h2>How to play</h2>
+    <p>A handful of ghosts flash briefly across the grid — remember exactly which tiles they were on. Once the grid goes dark, tap those tiles from memory. A correct tile turns green and scores points; a wrong one turns red and costs a try. Find every ghost before your tries run out.</p>
+    <button class="btn-primary" id="btn-help-close" style="width:100%;">Got it</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- level config: easy → hard across 7 rounds ---------------- */
+  const LEVELS = [
+    { round:1, ghosts:3, tries:4, flashMs:1500 },
+    { round:2, ghosts:4, tries:4, flashMs:1400 },
+    { round:3, ghosts:5, tries:4, flashMs:1300 },
+    { round:4, ghosts:5, tries:3, flashMs:1150 },
+    { round:5, ghosts:6, tries:3, flashMs:1050 },
+    { round:6, ghosts:6, tries:3, flashMs:950 },
+    { round:7, ghosts:7, tries:2, flashMs:850 },
+  ];
+  const GRID_SIZE = 20; // 4 columns x 5 rows
+  const BEST_KEY = 'hg_best_score_v1';
+
+  /* ---------------- state ---------------- */
+  let roundIndex = 0;
+  let score = 0;
+  let totalCorrect = 0;
+  let totalIncorrect = 0;
+  let paused = false;
+  let phaseLocked = true; // true during the flash / transitions
+  let targetSet = new Set();
+  let foundCount = 0;
+  let triesLeft = 0;
+  let tileEls = [];
+
+  /* ---------------- refs ---------------- */
+  const screens = {
+    intro: document.getElementById('screen-intro'),
+    game: document.getElementById('screen-game'),
+    end: document.getElementById('screen-end'),
+  };
+  const hudRound = document.getElementById('hud-round');
+  const hudScore = document.getElementById('hud-score');
+  const progressFill = document.getElementById('progress-fill');
+  const triesBanner = document.getElementById('tries-banner');
+  const ghostGrid = document.getElementById('ghost-grid');
+  const overlayPause = document.getElementById('overlay-pause');
+  const overlayHelp = document.getElementById('overlay-help');
+  const successBadge = document.getElementById('success-badge');
+
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  /* ---------------- best score / rank ---------------- */
+  function getBest(){ return parseInt(localStorage.getItem(BEST_KEY) || '0', 10); }
+  function setBest(v){ localStorage.setItem(BEST_KEY, String(v)); }
+  function rankFor(s){
+    if (s >= 2400) return 'Expert';
+    if (s >= 1400) return 'Advanced';
+    if (s >= 600) return 'Amateur';
+    if (s > 0) return 'Novice';
+    return 'Unranked';
+  }
+  function paintIntroStats(){
+    const best = getBest();
+    document.getElementById('stat-best').textContent = best;
+    document.getElementById('stat-rank').textContent = rankFor(best);
+  }
+  paintIntroStats();
+
+  /* ---------------- helpers ---------------- */
+  function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function shuffle(arr){
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--){
+      const j = randInt(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  /* ---------------- ghost svg ---------------- */
+  function ghostSVG(variant){
+    const body = '#eafbf7';
+    if (variant === 'wrong'){
+      return '\
+      <svg viewBox="0 0 56 56"><path d="M28 8c-11 0-18 8-18 19v17l6-6 5 6 5-6 5 6 5-6 5 6V27C46 16 39 8 28 8Z" fill="' + body + '" opacity=".55"/>\
+      <path d="M20 22l16 16M36 22l-16 16" stroke="#7a1220" stroke-width="4.4" stroke-linecap="round"/></svg>';
+    }
+    return '\
+    <svg viewBox="0 0 56 56"><path d="M28 8c-11 0-18 8-18 19v17l6-6 5 6 5-6 5 6 5-6 5 6V27C46 16 39 8 28 8Z" fill="' + body + '"/>\
+    <circle cx="21" cy="26" r="3" fill="#123a41"/><circle cx="35" cy="26" r="3" fill="#123a41"/>\
+    <path d="M23 34q5 4 10 0" stroke="#123a41" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
+  }
+
+  /* ---------------- round setup ---------------- */
+  function buildGrid(){
+    ghostGrid.innerHTML = '';
+    tileEls = [];
+    for (let i = 0; i < GRID_SIZE; i++){
+      const tile = document.createElement('div');
+      tile.className = 'g-tile disabled';
+      tile.dataset.idx = i;
+      tile.addEventListener('click', () => handleTileTap(i, tile));
+      ghostGrid.appendChild(tile);
+      tileEls.push(tile);
+    }
+  }
+
+  function renderRound(){
+    const cfg = LEVELS[roundIndex];
+    hudRound.textContent = cfg.round + '/7';
+    progressFill.style.width = (roundIndex / LEVELS.length * 100) + '%';
+
+    buildGrid();
+    targetSet = new Set(shuffle([...Array(GRID_SIZE).keys()]).slice(0, cfg.ghosts));
+    foundCount = 0;
+    triesLeft = cfg.tries;
+    updateTriesBanner();
+    phaseLocked = true;
+
+    // flash phase: reveal target tiles briefly
+    targetSet.forEach(i => {
+      tileEls[i].classList.add('flash');
+      tileEls[i].innerHTML = ghostSVG('flash');
+    });
+
+    setTimeout(() => {
+      targetSet.forEach(i => {
+        tileEls[i].classList.remove('flash');
+        tileEls[i].innerHTML = '';
+      });
+      tileEls.forEach(t => t.classList.remove('disabled'));
+      phaseLocked = false;
+    }, cfg.flashMs);
+  }
+
+  function updateTriesBanner(){
+    triesBanner.textContent = triesLeft + (triesLeft === 1 ? ' try left' : ' tries left');
+    triesBanner.classList.toggle('low', triesLeft <= 1);
+  }
+
+  function handleTileTap(i, tile){
+    if (phaseLocked || paused) return;
+    if (tile.classList.contains('found') || tile.classList.contains('wrong') || tile.classList.contains('missed')) return;
+
+    if (targetSet.has(i)){
+      tile.classList.add('found');
+      tile.innerHTML = ghostSVG('found');
+      foundCount++;
+      totalCorrect++;
+      const cfg = LEVELS[roundIndex];
+      score += 35 + roundIndex * 12;
+      hudScore.textContent = score;
+      if (foundCount >= targetSet.size){
+        roundComplete();
+      }
+    } else {
+      tile.classList.add('wrong');
+      tile.innerHTML = ghostSVG('wrong');
+      totalIncorrect++;
+      triesLeft--;
+      updateTriesBanner();
+      if (triesLeft <= 0){
+        roundRunOut();
+      }
+    }
+  }
+
+  function roundComplete(){
+    phaseLocked = true;
+    tileEls.forEach(t => t.classList.add('disabled'));
+    successBadge.classList.remove('play');
+    void successBadge.offsetWidth;
+    successBadge.classList.add('play');
+    setTimeout(advanceRound, 750);
+  }
+
+  function roundRunOut(){
+    phaseLocked = true;
+    tileEls.forEach(t => t.classList.add('disabled'));
+    // remaining un-found ghosts reveal in a muted "missed" state
+    targetSet.forEach(i => {
+      const tile = tileEls[i];
+      if (!tile.classList.contains('found')){
+        tile.classList.add('missed');
+        tile.innerHTML = ghostSVG('flash');
+      }
+    });
+    setTimeout(advanceRound, 900);
+  }
+
+  function advanceRound(){
+    roundIndex++;
+    if (roundIndex >= LEVELS.length){
+      finishGame();
+    } else {
+      renderRound();
+    }
+  }
+
+  /* ---------------- lifecycle ---------------- */
+  function startGame(){
+    roundIndex = 0; score = 0; totalCorrect = 0; totalIncorrect = 0; paused = false;
+    hudScore.textContent = '0';
+    showScreen('game');
+    renderRound();
+  }
+
+  function finishGame(){
+    progressFill.style.width = '100%';
+    const best = getBest();
+    if (score > best) setBest(score);
+
+    const attempts = totalCorrect + totalIncorrect;
+    const accuracy = attempts > 0 ? Math.round((totalCorrect / attempts) * 100) : 100;
+
+    document.getElementById('end-score').textContent = score;
+    document.getElementById('end-accuracy').textContent = accuracy + '%';
+    document.getElementById('end-rank').textContent = rankFor(score);
+    document.getElementById('end-title').textContent = 'All ghosts found';
+    document.getElementById('end-sub').textContent = 'Seven rounds of hide-and-seek, cleared with ' + accuracy + '% accuracy.';
+    document.getElementById('trophy-wrap').innerHTML = trophySVG();
+
+    showScreen('end');
+  }
+
+  function trophySVG(){
+    return '\
+    <svg width="118" height="118" viewBox="0 0 120 120" fill="none">\
+      <defs><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe39a"/><stop offset="1" stop-color="#e0982f"/></linearGradient></defs>\
+      <circle cx="60" cy="60" r="58" fill="#123a41" stroke="#194b53"/>\
+      <path d="M42 24h36v22a18 18 0 0 1-36 0V24Z" fill="url(#gold)"/>\
+      <path d="M42 30h-9a10 10 0 0 0 9 16" stroke="#e0982f" stroke-width="4" fill="none" stroke-linecap="round"/>\
+      <path d="M78 30h9a10 10 0 0 1-9 16" stroke="#e0982f" stroke-width="4" fill="none" stroke-linecap="round"/>\
+      <rect x="54" y="62" width="12" height="14" fill="#e0982f"/>\
+      <path d="M40 90h40l-4-12H44l-4 12Z" fill="url(#gold)"/>\
+      <circle cx="60" cy="41" r="9" fill="#7c4a2d"/>\
+      <path d="M60 36l2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7-3.4-3.3 4.7-.7Z" fill="#ffe39a"/>\
+    </svg>';
+  }
+
+  /* ---------------- pause / help ---------------- */
+  document.getElementById('btn-pause').addEventListener('click', () => { paused = true; overlayPause.classList.add('show'); });
+  document.getElementById('btn-resume').addEventListener('click', () => { paused = false; overlayPause.classList.remove('show'); });
+  document.getElementById('btn-quit').addEventListener('click', () => {
+    paused = false; overlayPause.classList.remove('show');
+    showScreen('intro'); paintIntroStats();
+  });
+  function openHelp(){ overlayHelp.classList.add('show'); }
+  document.getElementById('btn-info-intro').addEventListener('click', openHelp);
+  document.getElementById('btn-info-game').addEventListener('click', () => { paused = true; openHelp(); });
+  document.getElementById('btn-help-close').addEventListener('click', () => {
+    overlayHelp.classList.remove('show');
+    paused = false;
+  });
+
+  /* ---------------- nav ---------------- */
+  document.getElementById('btn-start').addEventListener('click', startGame);
+  document.getElementById('btn-again').addEventListener('click', startGame);
+  document.getElementById('btn-home').addEventListener('click', () => { showScreen('intro'); paintIntroStats(); });
+
+})();
+</script>
+</body>
+</html>
